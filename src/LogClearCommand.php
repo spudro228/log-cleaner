@@ -3,9 +3,8 @@
 namespace LogCleaner;
 
 use Illuminate\Console\Command;
-use Illuminate\Contracts\Bus\SelfHandling;
 
-class LogClearCommand extends Command implements SelfHandling
+class LogClearCommand extends Command
 {
     protected $signature = 'log:clear';
 
