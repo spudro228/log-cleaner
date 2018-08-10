@@ -44,6 +44,8 @@ class LogClearCommand extends Command
         $config->setLogExtension($this->option('logExtension'));
         $config->setLogDumpExtension($this->option('logDumpExtension'));
 
+        $this->cleaner->setConfig($config);
+
         $this->info('LogClear start...');
         try {
             $this->cleaner->run();
