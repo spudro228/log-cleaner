@@ -6,7 +6,12 @@ use Illuminate\Console\Command;
 
 class LogClearCommand extends Command
 {
-    protected $signature = 'log:clear';
+    protected $signature = 'log:clear '
+    . '{--logDirectoryPath= : Директория где хранятся логи}'
+    . '{--maxDayOfLive=30 : Число дней, когда послоедний раз был использован файл. Файл удалоится, если он стардше }'
+    . '{--maxFileSize=10000 : Размер фала в МЕГАБАЙТАХ. Все фалы размером больше чем это значения будут переименованы}'
+    . '{--logExtension=log}'
+    . '{--logDumpExtension=log-dump : Директория где хранятся логи}';
 
     protected $description = 'Чистит все логи в папке';
 
@@ -15,7 +20,7 @@ class LogClearCommand extends Command
     /**
      * Create a new command instance.
      *
-     * @param CleanerInterface $cleaner
+     * @param CleanerInterface|LogCleaner $cleaner
      */
     public function __construct(CleanerInterface $cleaner)
     {
@@ -30,6 +35,14 @@ class LogClearCommand extends Command
      */
     public function handle()
     {
+        $config = new LogCleanerConfig();
+        if ($this->option('logDirectoryPath')) {
+            $config->setLogDirectoryPath($this->option('logDirectoryPath'));
+        }
+        $config->setMaxDayOfLive((int)$this->option('maxDayOfLive'));
+        $config->setMaxFileSize((int)$this->option('maxFileSize'));
+        $config->setLogExtension($this->option('logExtension'));
+        $config->setLogDumpExtension($this->option('logDumpExtension'));
 
         $this->info('LogClear start...');
         try {

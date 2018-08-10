@@ -56,11 +56,11 @@ class LogCleaner implements CleanerInterface
             function (\SplFileInfo $fileInfo) {
                 if ($fileInfo->getExtension() === $this->config->getLogExtension()) {
                     return Carbon::now()
-                        ->diffInDays(
-                            Carbon::createFromTimestamp(
-                                $fileInfo->getMTime()
-                            )
-                        ) >= $this->config->getMaxDayOfLive();
+                            ->diffInDays(
+                                Carbon::createFromTimestamp(
+                                    $fileInfo->getMTime()
+                                )
+                            ) >= $this->config->getMaxDayOfLive();
                 }
 
                 return false;
@@ -125,5 +125,21 @@ class LogCleaner implements CleanerInterface
     protected function bytesToMBytes($bytes): int
     {
         return (int)($bytes / pow(1024, 2));
+    }
+
+    /**
+     * @return LogCleanerConfig
+     */
+    public function getConfig(): LogCleanerConfig
+    {
+        return $this->config;
+    }
+
+    /**
+     * @param LogCleanerConfig $config
+     */
+    public function setConfig(LogCleanerConfig $config)
+    {
+        $this->config = $config;
     }
 }
