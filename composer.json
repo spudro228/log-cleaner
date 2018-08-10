@@ -1,0 +1,27 @@
+{
+  "name": "ec-crm/log-cleaner",
+  "type": "library",
+  "description": "Liba dlz ochstki logov",
+  "authors": [
+    {
+      "name": "Dmitry Smolyakov",
+      "email": "mompizzapls@mail.ru"
+    }
+  ],
+  "minimum-stability": "dev",
+  "require": {
+    "php": ">=7.0.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "LogCleaner\\": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "LogCleaner\\LogCleanerProvider"
+      ]
+    }
+  }
+}
