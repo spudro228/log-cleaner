@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace LogCleaner;
 
 use Illuminate\Console\Command;
@@ -56,4 +58,3 @@ class LogClearCommand extends Command
     }
 
 }
-
