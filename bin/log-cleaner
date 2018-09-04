@@ -1,0 +1,141 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use React\Filesystem\Node\NodeInterface;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\NullOutput;
+use Symfony\Component\Console\Output\OutputInterface;
+
+require_once __DIR__ . '/../vendor/autoload.php';
+
+$app = new \Symfony\Component\Console\Application('LogCleaner', '1.0.0');
+try {
+    $app->register('logCleaner:clean')
+        ->addArgument('dir', InputArgument::OPTIONAL, 'Log directory', posix_getcwd())
+        ->addOption('size', null, InputOption::VALUE_REQUIRED, '[BYTES] Max file size permitted', 10000)
+        ->addOption('time', null, InputOption::VALUE_REQUIRED, '[DAY] Max file day of live permitted', 10)
+        ->addOption('no-output', 's', InputOption::VALUE_NONE, 'No output text')
+        ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Run script without real actions like delete/rename on files')
+        ->setCode('main')
+        ->getApplication()
+        ->setDefaultCommand('logCleaner:clean', true)
+        ->run();
+} catch (Exception $e) {
+    exit ($e->getMessage() . PHP_EOL);
+}
+
+
+function main(InputInterface $input, OutputInterface $output)
+{
+    if (!defined('DEBUG_MOD')) {
+        define('DEBUG_MOD', $input->getOption('dry-run'));
+    }
+
+    if ($input->getOption('no-output')) {
+        $output = new NullOutput();
+
+    }
+
+    $dir = $input->getArgument('dir');
+    if (!is_dir($dir)) {
+
+        $output->writeln(sprintf('<error>Directory %s not exist</error>', $dir));
+        exit(1);
+    }
+    $output->writeln('Log directory: ' . $dir);
+
+
+    $loop = \React\EventLoop\Factory::create();
+
+    $fileSystem = \React\Filesystem\Filesystem::create($loop);
+
+    $dir = $fileSystem->dir($input->getArgument('dir'));
+
+    $stream = $dir->lsRecursiveStreaming();
+
+    $stream->on('data', function (NodeInterface $node) use ($output, $input) {
+        /** @var \React\Filesystem\Node\File $node */
+        if ($node instanceof \React\Filesystem\Node\File) {
+            $node->size()->then(function (int $fileSize) use ($node, $output, $input) {
+                $node->stat()->then(function ($stat) use ($output, $node, $fileSize, $input) {
+                    $lastModificationTime = lastModificationDayCount($stat['mtime']);
+                    $output->writeln(
+                        sprintf(
+                            '%s <info>%s | last modifications day count: %s</info>',
+                            $node->getPath(),
+                            formatBytes($fileSize),
+                            $lastModificationTime
+                        )
+                    );
+
+                    if ($lastModificationTime >= $input->getOption('time')) {
+                        $node
+                            ->remove()
+                            ->then(function () use ($node, $output) {
+                                $output->writeln(
+                                    sprintf(
+                                        '<info>Delete:  %s</info>',
+                                        $node->getName()
+                                    )
+                                );
+                            });
+                    }
+
+                    if ($fileSize >= $input->getOption('size')) {
+                        fileExtension($node->getName())->then(function ($extension) use ($node, $output) {
+                            var_dump($extension);
+                            if ($extension === 'log') {
+                                $node
+                                    ->rename($node->getPath() . '.dump')
+                                    ->then(
+                                        function () use ($node, $output) {
+                                            $output->writeln(
+                                                sprintf(
+                                                    '<info>Rename %s to %s</info>',
+                                                    $node->getName(),
+                                                    $node->getName() . '.dump'
+                                                )
+                                            );
+                                        });
+                            }
+                        });
+
+                    }
+                });
+            });
+        }
+    });
+
+    $stream->on('end', function () use (&$output) {
+        $output->writeln('End.');
+    });
+
+    $loop->run();
+
+}
+
+function formatBytes(int $bytes, int $precision = 2): string
+{
+    $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    $bytes = max($bytes, 0);
+    $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+    $pow = min($pow, count($units) - 1);
+    $bytes /= (1 << (10 * $pow));
+    return round($bytes, $precision) . ' ' . $units[$pow];
+}
+
+function lastModificationDayCount(DateTime $mtime): int
+{
+    return $mtime->diff(new DateTime())->d;
+}
+
+function fileExtension($path): \React\Promise\PromiseInterface
+{
+    $deferred = new \React\Promise\Deferred();
+    $deferred->resolve(pathinfo($path, PATHINFO_EXTENSION));
+    return $deferred->promise();
+}

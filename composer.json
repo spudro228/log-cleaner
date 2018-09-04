@@ -11,7 +11,9 @@
   "minimum-stability": "stable",
   "require": {
     "php": ">=7.0.0",
-    "react/event-loop": "^1.0"
+    "react/event-loop": "^1.0",
+    "react/filesystem": "^0.1.1",
+    "symfony/console": "^4.1"
   },
   "autoload": {
     "psr-4": {
@@ -24,5 +26,6 @@
         "LogCleaner\\LogCleanerProvider"
       ]
     }
-  }
+  },
+  "bin": ["bin/log-cleaner"]
 }
